@@ -2,6 +2,7 @@ package study.querydsl;
 
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
@@ -444,7 +445,32 @@ public class QueryDslBasicTest {
         for(String s: result){
             System.out.println("s = " + s);
         }
+    }
 
+    @Test
+    public void dynamicQuery_whereParam(){
+        String usernameParam = "member1";
+        Integer ageParam = 10;
+
+        List<Member> result = searchMember2(usernameParam, ageParam);
+        assertThat(result.size()).isEqualTo(1);
+    }
+
+    private List<Member> searchMember2(String usernameCond, Integer ageCond) {
+        // where 절에 null이 있으면 무시가 된다. 아무 역할을 안하니까 동적 쿼리가 된다.
+        return queryFactory
+                .selectFrom(member)
+                .where(usernameEq(usernameCond), ageEq(ageCond))
+                .fetch();
+    }
+
+    private Predicate usernameEq(String usernameCond) {
+        // null일 때가 문제
+        return usernameCond == null ? null : member.username.eq(usernameCond);
+    }
+
+    private Predicate ageEq(Integer ageCond) {
+        return null;
     }
 
 }
