@@ -12,6 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.Commit;
 import org.springframework.transaction.annotation.Transactional;
 import study.querydsl.entity.Member;
 import study.querydsl.entity.QMember;
@@ -484,4 +485,50 @@ public class QueryDslBasicTest {
         return usernameEq(usernameCond).and(ageEq(ageCond));
     }
 
+    // 보통 트랜잭션은 데이터를 다 지우지만 COMMIT을 하면 데이터 그대로 남
+    @Commit
+    @Test
+    void bulkUpdate() {
+
+        // member1 = 10 -> DB 비회원
+        // member2 = 20 -> DB 비회원
+        // member3 = 30 -> DB 유지
+        // member4 = 40 -> DB 유지
+
+        // 영향을 받은 rows 수
+        long count = queryFactory
+                .update(member)
+                .set(member.username, "비회원")
+                .where(member.age.lt(28))
+                .execute();
+
+        em.flush();
+        em.clear();
+
+        // 영속성 컨텍스트와 DB와 다른 상태
+        // DB에서 꺼내와도 영속성 컨텍스트에서 가져오게 된다
+        // 이것을 repeatable read라고 한다
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .fetch();
+
+        System.out.println(result);
+    }
+
+    // 나이를 모두 1만큼 더하고 싶을 때
+    @Test
+    void bulkAdd() {
+        queryFactory
+                .update(member)
+                .set(member.age, member.age.add(1))
+                .execute();
+    }
+
+    @Test
+    void bulkDelete() {
+        queryFactory
+                .delete(member)
+                .where(member.age.gt(18))
+                .execute();
+    }
 }
