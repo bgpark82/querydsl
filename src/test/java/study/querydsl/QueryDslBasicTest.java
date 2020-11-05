@@ -531,4 +531,36 @@ public class QueryDslBasicTest {
                 .where(member.age.gt(18))
                 .execute();
     }
+
+    @Test
+    void sqlFunction() {
+        // member라는 단어를 M으로 변경
+        queryFactory
+                .select(Expressions.stringTemplate(
+                        "function('replace',{0},{1},{2})",
+                        member.username, "member", "M"))
+                .from(member)
+                .fetch();
+    }
+
+    @Test
+    void sqlFunction2() {
+        List<String> result = queryFactory
+                .select(member.username)
+                .from(member)
+                .where(member.username.eq(Expressions.stringTemplate(
+                        "function('lower',{0})", member.username)))
+                .fetch();
+
+        // 위와같은 lower 등은 매우 간단한 방법이므로 JPA에서 기본적으로 제공하고 있따
+        queryFactory
+                .select(member.username)
+                .from(member)
+                .where(member.username.eq(member.username.lower()))
+                .fetch();
+
+        for (String s : result) {
+            System.out.println(s);
+        }
+    }
 }
