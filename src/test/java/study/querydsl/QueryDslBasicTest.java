@@ -60,17 +60,19 @@ public class QueryDslBasicTest {
         em.persist(member4);
     }
 
-//    @Test
-//    public void startJPQL(){
-//        // Member 1을 찾아라
-//        String qlString =
-//                "select m from Member m " +
-//                "where m.username = :username";
-//        Member findMember = em.createQuery(qlString, Member.class)
-//                .setParameter("username","member1")
-//                .getSingleResult();
-//        assertThat(findMember.getUsername()).isEqualTo("member1");
-//    }
+    @Test
+    public void startJPQL(){
+        // Member 1을 찾아라
+        String qlString =
+                "select m from Member m " +
+                "where m.username = :username";
+
+        Member findMember = em.createQuery(qlString, Member.class)
+                .setParameter("username","member1")
+                .getSingleResult();
+
+        assertThat(findMember.getUsername()).isEqualTo("member1");
+    }
 
     @Test
     public void startQueryDsl() {
@@ -120,10 +122,22 @@ public class QueryDslBasicTest {
 //                .fetchResults();
 //        results.getTotal();
 //        List<Member> content = results.getResults();
+//        long total = queryFactory
+//                .selectFrom(member)
+//                .fetchCount();
 
-        long total = queryFactory
+        Member findMember = queryFactory
+                .selectFrom(member)
+                .where(member.username.eq("member1"))
+                .fetchOne();
+
+        assertThat(findMember.getUsername()).isEqualTo("member1");
+
+        long l = queryFactory
                 .selectFrom(member)
                 .fetchCount();
+
+        System.out.println(l);
     }
 
     /**
@@ -180,6 +194,7 @@ public class QueryDslBasicTest {
                 .from(member)
                 .fetch();
 
+        // Tuple == Table
         Tuple tuple = result.get(0);
 
         assertThat(tuple.get(member.count())).isEqualTo(4);
@@ -249,7 +264,8 @@ public class QueryDslBasicTest {
     }
 
     /**
-     * 회원과 팀을 조인하면서, 팀 이름이 teamA인 팀만 조인, 회원은 모두 조회
+     * 회원과 팀을 조인하면서,
+     * 팀 이름이 teamA인 팀만 조인, 회원은 모두 조회
      * JPQL : select m, t from Member m left join m.team t on t.name = 'teamA'
      */
     @Test
@@ -258,8 +274,8 @@ public class QueryDslBasicTest {
                 .select(member, team)
                 .from(member)
                 .join(member.team, team)
-                //.on(team.name.eq("teamA"))
-                .where(team.name.eq("teamA"))
+                //.on(team.name.eq("teamA"))                // outerJoin
+                .where(team.name.eq("teamA"))          // innerJoin
                 .fetch();
 
         for(Tuple tuple: result){
@@ -277,7 +293,7 @@ public class QueryDslBasicTest {
         em.persist(new Member("teamB"));
 
         List<Tuple> result = queryFactory
-                .select(member, team)
+                .select(member, team)   // 막 조인한 것이므로 team.member가 아니라 member로 들어간다
                 .from(member)
                 .leftJoin(team).on(member.username.eq(team.name))
                 .fetch();
@@ -535,12 +551,14 @@ public class QueryDslBasicTest {
     @Test
     void sqlFunction() {
         // member라는 단어를 M으로 변경
-        queryFactory
+        List<String> fetch = queryFactory
                 .select(Expressions.stringTemplate(
                         "function('replace',{0},{1},{2})",
                         member.username, "member", "M"))
                 .from(member)
                 .fetch();
+
+        System.out.println(fetch);
     }
 
     @Test
